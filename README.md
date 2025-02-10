@@ -55,7 +55,7 @@ yarn build
 - **Назначение:**  
   Выполнение HTTP-запросов к серверу (GET, POST, PUT, DELETE) и обработка ответов.
 
-#### 2. **EventEmitter** (src/components/events.ts)
+#### 2. **EventEmitter** (src/components/base/events.ts)
 - **Назначение:**  
   Реализует механизм событий для связи между компонентами приложения.
 - **Функциональность:**  
