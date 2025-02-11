@@ -41,3 +41,23 @@ export interface IOrderResponseError {
 // Объединённый тип ответа для запроса создания заказа.
 
 export type IOrderResponse = IOrderResponseSuccess | IOrderResponseError;
+
+// Базовые интерфейсы представлений
+
+export interface IView {
+    render(data: any): void;
+  }
+  export interface IBaseComponent {
+    init(): void;
+  }
+
+// Перечисление событий
+
+  export enum AppEvents {
+    PRODUCT_SELECTED = "productSelected",
+    PRODUCT_ADDED = "productAdded",
+    BASKET_UPDATED = "basketUpdated",
+    ORDER_SUBMITTED = "orderSubmitted",
+    ORDER_SUCCESS = "orderSuccess",
+    ORDER_FAILURE = "orderFailure"
+  }
