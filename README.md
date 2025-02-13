@@ -62,7 +62,6 @@ yarn build
 - **Методы:**
   get(uri: string): Promise<any>
   Выполняет GET-запрос по указанному URI и возвращает промис с данными.
-
   post(uri: string, data: object, method?: 'POST' | 'PUT' | 'DELETE'): Promise<any>
   Выполняет запрос с отправкой данных.
 
@@ -78,7 +77,7 @@ yarn build
   Реализует механизм событий для связи между компонентами приложения.
 - **Конструктор:**  
   constructor()
-  Не принимает параметров; инициализирует внутреннюю карту слушателей.
+  Не принимает параметров, инициализирует внутреннюю карту слушателей.
 - **Поля:**  
   _events: Map<string | RegExp, Set<Function>> 
   карта, где ключ — имя события или RegExp для шаблонного поиска, а значение — набор обработчиков.
@@ -101,6 +100,21 @@ yarn build
   trigger<T extends object>(event: string, context?: Partial<T>): (data: T) => void
   Возвращает функцию, которая при вызове объединяет переданные данные с контекстом и инициирует событие.
 
+  #### 3. **BaseModalView** (src/components/base/BaseModalView.ts)
+  - **Назначение:** 
+  Управляет базовым модальным окном – открытие, закрытие и установка контента.
+  - **Поля:**  
+  modalElement: HTMLElement – контейнер модального окна.
+  contentContainer: HTMLElement – элемент, в который вставляется контент (переданный из представлений контента).
+  - **Конструктор:**  
+  constructor(modalSelector: string)
+  - **Параметры:**
+  modalSelector: Селектор базового модального окна.
+   **Методы:**
+  open(): void – открывает модальное окно.
+  close(): void – закрывает модальное окно.
+  setContent(content: HTMLElement): void – устанавливает содержимое модального окна.
+
 #### 3. **Типы данных** (src/types/index.ts)
 - **Назначение:**  
   Описание моделей данных, получаемых через API, и объектов, отображаемых на экране.
@@ -109,7 +123,7 @@ yarn build
   - `IProductListResponse` — структура ответа API для списка товаров.  
   - `IOrderRequest` — данные запроса для создания заказа.  
   - `IOrderResponse` (успешный и с ошибкой) — ответ на создание заказа.
-  - `IViev` - Базовые интерфейсы представлений
+  - `IView` - Базовые интерфейсы представлений
 
   #### 4. **Классы моделей** (src/models)
   - **ProductModel:**  
@@ -117,9 +131,10 @@ yarn build
   Хранит и управляет списком товаров.
   - **Поля:**  
   products: IProduct[]
+  apiClient: IApiClient – для загрузки товаров.
   - **Конструктор:**  
-  constructor()
-  Инициализирует пустой массив товаров.
+  constructor(apiClient: IApiClient)
+  Принимает API-клиента, который используется для загрузки товаров.
   - **Методы:**  
   fetchProducts(): Promise<void> – загружает список товаров через Api.get и сохраняет их в products.
   getProductById(id: string): IProduct | undefined – возвращает товар по заданному id.
@@ -135,6 +150,7 @@ yarn build
   - **Методы:** 
   addProduct(product: IProduct): void – добавляет товар или увеличивает его количество.
   removeProduct(productId: string): void – удаляет товар по идентификатору.
+  clearBasket(): void – очищает всю корзину.
   getTotal(): number – вычисляет итоговую сумму заказа.
   
   - **OrderModel:** 
@@ -148,10 +164,16 @@ yarn build
   total: number
   items: string[]
   - **Конструктор:** 
-  constructor(orderData: IOrderRequest)
-  Инициализирует поля модели из объекта orderData.
+  constructor()
+  Инициализируется пустыми значениями, а данные устанавливаются через методы-сеттеры.
   - **Методы:** 
-  validateOrder(): boolean – проверяет корректность заполнения обязательных полей.
+  setPayment(payment: "online" | "cash"): void – устанавливает способ оплаты.
+  setContactInfo(email: string, phone: string): void – устанавливает контактные данные.
+  setAddress(address: string): void – устанавливает адрес доставки.
+  setItems(items: string[]): void – устанавливает идентификаторы товаров.
+  setTotal(total: number): void – устанавливает итоговую сумму.
+  validateStep1(): boolean – валидирует первый шаг.
+  validateStep2(): boolean – валидирует второй шаг.
   transformData(): IOrderRequest – возвращает данные заказа в формате, пригодном для отправки.
 
   #### 5. **Представления** (src/сomponents/views)
@@ -159,6 +181,9 @@ yarn build
   - **HeaderView:** 
   - **Назначение:** 
   Отображает хедер с логотипом и иконкой корзины, обновляет счётчик товаров.
+  - **Поля:**
+  rootElement: HTMLElement
+  cartCountElement: HTMLElement  
   - **Конструктор:** 
   constructor(selector: string)
   Принимает селектор элемента хедера.
@@ -168,57 +193,73 @@ yarn build
   - **ProductCardView:** 
   - **Назначение:** 
   Отображает карточку товара (категория, название, изображение, цена).
+  - **Поля:** 
+  container: HTMLElement – контейнер, куда вставляется карточка.
   - **Конструктор:** 
-  constructor(product: IProduct, containerSelector: string)
-  Принимает объект товара и селектор контейнера.
+  constructor(containerSelector: string, clickHandler: () => void)
+  Принимает селектор контейнера и обработчик клика 
   - **Методы:** 
-  render(): void – создает HTML-разметку карточки и вставляет её в контейнер.
-  attachClickHandler(callback: () => void): void – назначает обработчик клика.
+  render(product: IProduct): void – создает HTML-разметку карточки на основе переданных данных и вставляет её в контейнер.
 
   - **ProductDetailView:** 
   - **Назначение:** 
   Отображает модальное окно с подробной информацией о товаре и кнопкой «В корзину».
+  - **Поля:** 
+  Элементы DOM для отображения категории, названия, описания, цены и кнопки
   - **Конструктор:** 
-  constructor(product: IProduct, modalSelector: string)
-  Принимает объект товара и селектор модального окна.
+  constructor(modalContentSelector: string, buyHandler: () => void)
+  Принимает селектор контейнера для контента модального окна и обработчик клика по кнопке
   - **Методы:** 
-  render(): void – рендерит HTML-разметку модального окна с информацией о товаре.
-  attachBuyHandler(callback: () => void): void – назначает обработчик на кнопку «В корзину».
-  close(): void – закрывает модальное окно.
+  render(product: IProduct): void – рендерит контент на основе данных товара.
 
-  - **OrderPaymentView:** 
+  - **OrderPaymentContentView:** 
   - **Назначение:** 
-  Отображает окно для выбора способа оплаты и ввода адреса доставки.
+  Отображает контент шага оформления заказа – выбор способа оплаты и ввод адреса доставки.
+  - **Поля:** 
+  Элементы DOM для кнопок оплаты, поля ввода адреса, сообщения об ошибке
   - **Конструктор:** 
-  constructor(modalSelector: string)
+  constructor(contentSelector: string, paymentHandler: (payment: "online" | "cash") => void)
   Принимает селектор модального окна оплаты.
   - **Методы:** 
-  render(): void – рендерит кнопки оплаты, поле ввода адреса и кнопку «Далее».
-  attachPaymentHandler(callback: (payment: "online" | "cash") => void): void – назначает обработчики для кнопок оплаты.
-  attachAddressInputHandler(callback: (address: string) => void): void – следит за вводом адреса для активации кнопки «Далее».
-  close(): void – закрывает окно.
+  render(): void – рендерит контент шага.
+  setAddress(address: string): void – обновляет значение поля адреса.
+  setValidationError(errorMessage: string): void – устанавливает сообщение об ошибке валидации.
+  Метод активации кнопки «Далее» реализуется презентером на основе результата валидации  
 
-  - **ContactInfoView:** 
+  - **ContactInfoContentView:** 
   - **Назначение:** 
-  Отображает окно для ввода контактных данных (email и телефон).
+  Отображает контент шага ввода контактных данных
+  - **Поля:** 
+  DOM-элементы для полей ввода, сообщений об ошибке
   - **Конструктор:** 
-  constructor(modalSelector: string)
-  Принимает селектор модального окна для контактов.
+  constructor(contentSelector: string, submitHandler: (email: string, phone: string) => void)
+  Принимает селектор контента и обработчик отправки данных.
   - **Методы:** 
-  render(): void – рендерит поля ввода и кнопку отправки данных.
-  attachSubmitHandler(callback: (email: string, phone: string) => void): void – назначает обработчик для отправки данных.
-  close(): void – закрывает окно.
+  render(): void – рендерит поля ввода.
+  setValidationError(errorMessage: string): void – устанавливает сообщение об ошибке.
 
-  - **OrderSuccessView:** 
+  - **OrderSuccessContentView:** 
   - **Назначение:** 
-  Отображает окно с подтверждением заказа, финальной суммой и кнопкой закрытия.
+  Отображает контент финального шага – подтверждение заказа с итоговой суммой и кнопкой закрытия.
+   - **Поля:** 
+   DOM-элементы для изображения галочки, сообщения и кнопки закрытия
   - **Конструктор:** 
-  constructor(modalSelector: string)
-  Принимает селектор модального окна подтверждения.
+  constructor(contentSelector: string, closeHandler: () => void)
+  Принимает селектор контента и обработчик закрытия.
   - **Методы:** 
-  render(): void – рендерит окно с изображением галочки и сообщением о заказе.
-  attachCloseHandler(callback: () => void): void – назначает обработчик для закрытия окна.
-  close(): void – закрывает окно.
+  render(finalTotal: number): void – рендерит подтверждение заказа.
+  setValidationError(errorMessage: string): void – (если нужно) устанавливает сообщение об ошибке.
+
+  - **BasketView:** 
+  - **Назначение:** 
+  Отображает контент модального окна корзины – список товаров, итоговую сумму и кнопки.
+  - **Поля:** 
+  DOM-элементы для списка товаров, итоговой суммы, кнопок
+  - **Конструктор:** 
+  constructor(modalContentSelector: string, removeHandler: (productId: string) => void, checkoutHandler: () => void)
+  Принимает селектор для контента корзины и обработчики для удаления товара и оформления заказа.
+  - **Методы:** 
+  render(basketData: BasketModel): void – отображает список товаров и сумму.
 
   #### 6. **Презентеры** (src/presenters)
   - **ProductPresenter:** 
@@ -238,42 +279,55 @@ yarn build
   constructor(model: BasketModel, view: BasketView, eventEmitter: IEvents)
   Принимает модель корзины, представление корзины и брокер событий.
   - **Методы:** 
-  addProduct(product: IProduct): void – добавляет товар в корзину, обновляет представление и эмиттирует событие AppEvents.PRODUCT_ADDED.
-  removeProduct(productId: string): void – удаляет товар из корзины, обновляет представление и эмиттирует событие AppEvents.BASKET_UPDATED.
+  addProduct(product: IProduct): void – добавляет товар, эмиттирует AppEvents.PRODUCT_ADDED.
+  removeProduct(productId: string): void – удаляет товар, эмиттирует AppEvents.PRODUCT_REMOVED и AppEvents.BASKET_UPDATED.
+  clearBasket(): void – очищает корзину.
   updateCartDisplay(): void – обновляет число товаров в хедере.
 
   - **OrderPresenter:** 
   - **Назначение:** 
   Координирует процесс оформления заказа: валидация данных, последовательность этапов (выбор оплаты, ввод контактов, подтверждение заказа) и отправка заказа на сервер.
   - **Конструктор:** 
-  constructor(orderModel: OrderModel, paymentView: OrderPaymentView, contactView: ContactInfoView, successView: OrderSuccessView eventEmitter: IEvents)
-  Принимает модель заказа, представления для этапов оформления и брокер событий.
+  constructor(orderModel: OrderModel,paymentContent: OrderPaymentContentView, contactContent: ContactInfoContentView, successContent: OrderSuccessContentView, baseModal: BaseModalView, eventEmitter: IEvents)
+  Принимает модель заказа, представления контента для шагов оформления, базовое модальное окно и брокер событий.
   - **Методы:** 
-  validatePaymentInfo(): boolean – проверяет корректность заполнения обязательных полей в представлении оплаты.
-  submitOrder(): void – отправляет данные заказа через Api.post и обрабатывает ответ, эмиттируя события ORDER_SUCCESS или ORDER_FAILURE.
-  initOrderFlow(): void – организует последовательность этапов оформления заказа.
-
+  validatePaymentStep(): boolean – валидирует данные шага оплаты, при ошибке эмиттирует AppEvents.VALIDATION_ERROR_STEP1.
+  validateContactStep(): boolean – валидирует контактные данные, при ошибке эмиттирует AppEvents.VALIDATION_ERROR_STEP2.
+  submitOrder(): void – отправляет данные заказа через API и обрабатывает ответ (эмиттирует ORDER_SUCCESS или ORDER_FAILURE).
+  initOrderFlow(): void – организует переход между шагами оформления заказа.
+  
   #### 7. **События** (src/types/index.ts)
   AppEvents.PRODUCT_SELECTED
-  Срабатывает при выборе товара.
-  Параметры: Объект с идентификатором выбранного товара.
+  Эмиттируется при выборе товара.
+  Параметры: объект с идентификатором товара.
 
   AppEvents.PRODUCT_ADDED
-  Эмитируется при добавлении товара в корзину.
-  Параметры: Данные добавленного товара или его идентификатор.
+  Эмиттируется при добавлении товара в корзину.
+  Параметры: данные товара или его идентификатор.
+
+  AppEvents.PRODUCT_REMOVED
+  Эмиттируется при удалении товара из корзины.
+  Параметры: идентификатор товара.
 
   AppEvents.BASKET_UPDATED
-  Срабатывает при изменении корзины (добавление или удаление товара).
-  Параметры: Обновленные данные корзины (итоговая сумма, общее количество товаров).
+  Срабатывает при изменении корзины (обновление итоговой суммы, количества товаров).
+  Параметры: обновленные данные корзины.
 
   AppEvents.ORDER_SUBMITTED
-  Эмитируется при отправке заказа на сервер.
-  Параметры: Данные заказа, отправленные на сервер.
+  Эмиттируется при отправке заказа на сервер.
+  Параметры: данные заказа.
 
   AppEvents.ORDER_SUCCESS
-  Срабатывает при успешном оформлении заказа.
-  Параметры: Ответ сервера с идентификатором заказа и итоговой суммой.
+  Эмиттируется при успешном оформлении заказа.
+  Параметры: ответ сервера (идентификатор заказа, сумма).
 
   AppEvents.ORDER_FAILURE
-  Срабатывает при ошибке оформления заказа.
-  Параметры: Объект с описанием ошибки.
+  Эмиттируется при ошибке оформления заказа.
+  Параметры: объект с описанием ошибки.
+
+  AppEvents.VALIDATION_ERROR_STEP1
+  Эмиттируется, если валидация первого шага (оплата/адрес) не прошла.
+
+  AppEvents.VALIDATION_ERROR_STEP2
+  Эмиттируется, если валидация второго шага (контактная информация) не прошла.
+

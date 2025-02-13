@@ -45,19 +45,30 @@ export type IOrderResponse = IOrderResponseSuccess | IOrderResponseError;
 // Базовые интерфейсы представлений
 
 export interface IView {
-    render(data: any): void;
+    render(...args: any[]): void;
   }
   export interface IBaseComponent {
     init(): void;
   }
 
+  //Апишка
+
+  export interface IApiClient {
+    get(uri: string): Promise<any>;
+    post(uri: string, data: object, method?: 'POST' | 'PUT' | 'DELETE'): Promise<any>;
+  }
+
 // Перечисление событий
 
-  export enum AppEvents {
+export enum AppEvents {
     PRODUCT_SELECTED = "productSelected",
     PRODUCT_ADDED = "productAdded",
+    PRODUCT_REMOVED = "productRemoved", 
     BASKET_UPDATED = "basketUpdated",
     ORDER_SUBMITTED = "orderSubmitted",
     ORDER_SUCCESS = "orderSuccess",
-    ORDER_FAILURE = "orderFailure"
+    ORDER_FAILURE = "orderFailure",
+    VALIDATION_ERROR_STEP1 = "validationErrorStep1", 
+    VALIDATION_ERROR_STEP2 = "validationErrorStep2" 
   }
+  
