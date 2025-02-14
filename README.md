@@ -259,7 +259,20 @@ yarn build
   constructor(modalContentSelector: string, removeHandler: (productId: string) => void, checkoutHandler: () => void)
   Принимает селектор для контента корзины и обработчики для удаления товара и оформления заказа.
   - **Методы:** 
-  render(basketData: BasketModel): void – отображает список товаров и сумму.
+  render(items: HTMLElement[], total: number): void 
+  принимает готовый список HTML-элементов и итоговую сумму, затем отображает их.
+
+  - **StorePageView:** 
+  - **Назначение:** 
+  Отображает страницу магазина, где показываются карточки товаров.
+  - **Поля:** 
+  container: HTMLElement – контейнер, в котором отображаются карточки товаров.
+  productCardViewConstructor: (clickHandler: () => void) => ProductCardView – функция-конструктор для создания экземпляра ProductCardView. 
+  - **Конструктор:** 
+  constructor(containerSelector: string, productCardViewConstructor: (clickHandler: () => void) => ProductCardView)
+  Принимает селектор контейнера и функцию-конструктор карточки товара.
+  - **Методы:** 
+  render(productList: IProduct[]): void – создает и отображает карточки товаров на основе списка данных.
 
   #### 6. **Презентеры** (src/presenters)
   - **ProductPresenter:** 
@@ -295,7 +308,7 @@ yarn build
   validateContactStep(): boolean – валидирует контактные данные, при ошибке эмиттирует AppEvents.VALIDATION_ERROR_STEP2.
   submitOrder(): void – отправляет данные заказа через API и обрабатывает ответ (эмиттирует ORDER_SUCCESS или ORDER_FAILURE).
   initOrderFlow(): void – организует переход между шагами оформления заказа.
-  
+
   #### 7. **События** (src/types/index.ts)
   AppEvents.PRODUCT_SELECTED
   Эмиттируется при выборе товара.
