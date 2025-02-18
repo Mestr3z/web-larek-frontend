@@ -61,7 +61,6 @@ const basketView = new BasketView(
 		const orderPaymentView = new OrderPaymentContentView(
 			'#modal-container',
 			(payment: 'online' | 'cash') => {
-				console.log('Payment selected:', payment);
 			}
 		);
 		orderPaymentView.render();
@@ -79,7 +78,7 @@ const basketView = new BasketView(
 					const contactInfoView = new ContactInfoContentView(
 						'#modal-container',
 						(email: string, phone: string) => {
-							console.log('Contact info submitted:', email, phone);
+							console.log('Получено:', email, phone);
 							onOrderSuccess(basketModel.getTotal());
 						}
 					);
@@ -104,7 +103,7 @@ if (headerBasketButton) {
 		baseModalView.open();
 	});
 } else {
-	console.error('Header basket button not found');
+	console.error('ошибка');
 }
 
 // Функция для обработки успешного оформления заказа
@@ -130,5 +129,5 @@ productModel
 		storePageView.render(productModel.products);
 	})
 	.catch((error) => {
-		console.error('Error fetching products:', error);
+		console.error('ошибка', error);
 	});
