@@ -33,5 +33,11 @@
     &::placeholder {
       color: lighten($primaryLight, 23%);
     }
+    &_active{
+      background: transparent;
+      color: white;
+    border: $defaultBorder;
+    border-radius: 1.5rem;
+    }
   }
 }
