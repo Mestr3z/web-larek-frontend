@@ -1,54 +1,65 @@
 import { IProduct } from '../types';
 
 export class BasketModel {
-	public items: Map<string, { product: IProduct; quantity: number }>;
+  public items: Map<string, IProduct>;
 
-	/**
-	 * Конструктор BasketModel принимает опциональный массив начальных товаров.
-	 * @param initialItems - массив объектов, каждый из которых содержит продукт и его количество.
-	 */
-	constructor(initialItems?: { product: IProduct; quantity: number }[]) {
-		this.items = new Map();
-		if (initialItems) {
-			initialItems.forEach((item) => {
-				this.items.set(item.product.id, {
-					product: item.product,
-					quantity: item.quantity,
-				});
-			});
-		}
-	}
+  constructor(initialItems?: { product: IProduct }[]) {
+    this.items = new Map();
+    if (initialItems) {
+      initialItems.forEach(item => {
+        this.items.set(item.product.id, item.product);
+      });
+    }
+  }
 
-	addProduct(product: IProduct): void {
-		if (this.items.has(product.id)) {
-			const item = this.items.get(product.id)!;
-			item.quantity++;
-		} else {
-			this.items.set(product.id, { product, quantity: 1 });
-		}
-	}
+  /**
+   * Добавляет товар в корзину, если его там ещё нет.
+   * Если цена товара равна null, товар не добавляется.
+   */
+  addProduct(product: IProduct): void {
+    if (product.price === null) {
+      console.warn(`Товар "${product.title}" не добавлен в корзину, так как товар бесценнен.`);
+      return;
+    }
+    if (this.items.has(product.id)) {
+      console.warn(`Товар "${product.title}" уже добавлен в корзину.`);
+      return;
+    }
+    this.items.set(product.id, product);
+  }
 
-	removeProduct(productId: string): void {
-		this.items.delete(productId);
-	}
+  /**
+   * Удаляет товар из корзины по id.
+   */
+  removeProduct(productId: string): void {
+    this.items.delete(productId);
+  }
 
-	clearBasket(): void {
-		this.items.clear();
-	}
+  /**
+   * Очищает корзину.
+   */
+  clearBasket(): void {
+    this.items.clear();
+  }
 
-	getTotal(): number {
-		let total = 0;
-		this.items.forEach((item) => {
-			if (item.product.price !== null) {
-				total += item.product.price * item.quantity;
-			}
-		});
-		return total;
-	}
+  /**
+   * Возвращает итоговую сумму заказа по товарам в корзине.
+   */
+  getTotal(): number {
+    let total = 0;
+    this.items.forEach(product => {
+      if (product.price !== null) {
+        total += product.price;
+      }
+    });
+    return total;
+  }
 
-	getItemCount(): number {
-		let count = 0;
-		this.items.forEach((item) => (count += item.quantity));
-		return count;
-	}
+  /**
+   * Возвращает количество уникальных товаров в корзине.
+   */
+  getItemCount(): number {
+    return this.items.size;
+  }
 }
+

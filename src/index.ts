@@ -5,6 +5,7 @@ import { EventEmitter } from './components/base/events';
 import { ProductModel } from './models/ProductModel';
 import { StorePageView } from './components/views/StorePageView';
 import { ProductCardView } from './components/views/ProductCardView';
+import { ProductDetailView } from './components/views/ProductDetailView';
 import { BasketModel } from './models/BasketModel';
 import { BasketView } from './components/views/BasketView';
 import { BasketPresenter } from './presenters/BasketPresenter';
@@ -13,6 +14,7 @@ import { BaseModalView } from './components/base/BaseModalView';
 import { OrderPaymentContentView } from './components/views/OrderPaymentContentView';
 import { ContactInfoContentView } from './components/views/ContactInfoContentView';
 import { OrderSuccessContentView } from './components/views/OrderSuccessContentView';
+import { OrderModel } from './models/OrderModel';
 import { IProduct } from './types';
 
 // Если нет начальных товаров, используем пустой массив
@@ -22,112 +24,132 @@ const initialBasketItems: { product: IProduct; quantity: number }[] = [];
 const apiClient = new Api(API_URL);
 const productModel = new ProductModel(apiClient);
 const basketModel = new BasketModel(initialBasketItems);
+const orderModel = new OrderModel(apiClient); // Модель заказа для хранения данных и отправки заказа
 const eventEmitter = new EventEmitter();
 
 // Создаем представления
 const headerView = new HeaderView();
 const baseModalView = new BaseModalView('#modal-container');
 
-// Функция для обработки покупки товара из подробного представления
+// Функция для обработки покупки товара 
+// После добавления товара в корзину попап с подробностями закрывается
 function onBuyProduct(productId: string): void {
-	const product = productModel.getProductById(productId);
-	if (product) {
-		basketPresenter.addProduct(product);
-		// Закрываем попап с подробностями товара
-		baseModalView.close();
-	}
+  const product = productModel.getProductById(productId);
+  if (product) {
+    basketPresenter.addProduct(product);
+    baseModalView.close();
+  }
 }
 
-// Создаем представление каталога товаров
+// Создаем представление каталога товаров (StorePageView)
+// При клике на карточку вызывается колбэк, который открывает попап с подробностями товара.
 const storePageView = new StorePageView(
-	'.gallery',
-	(clickHandler: () => void) => new ProductCardView(clickHandler),
-	'#modal-container',
-	onBuyProduct
+  '.gallery',
+  (clickHandler: () => void) => new ProductCardView(clickHandler),
+  (product: IProduct) => {
+    const detailView = new ProductDetailView('card-preview', () => {
+      onBuyProduct(product.id);
+    });
+    detailView.render(product);
+    baseModalView.setContent(detailView.getElement());
+    baseModalView.open();
+  }
 );
 
 // Чтобы избежать циклических зависимостей, объявляем basketPresenter заранее
 let basketPresenter: BasketPresenter;
 
-// Создаем представление корзины
+// Создаем представление корзины (BasketView) с использованием шаблона "basket"
 const basketView = new BasketView(
-	'.basket',
-	(productId: string) => basketPresenter.removeProduct(productId),
-	() => {
-		// Обработчик для кнопки "Оформить" в корзине
-		baseModalView.close();
+  'basket', // id шаблона корзины
+  (productId: string) => basketPresenter.removeProduct(productId),
+  () => {
+    // Обработчик кнопки "Оформить" в корзине:
+    baseModalView.close();
 
-		// Открываем окно выбора способа оплаты и ввода адреса доставки
-		const orderPaymentView = new OrderPaymentContentView(
-			'#modal-container',
-			(payment: 'online' | 'cash') => {
-			}
-		);
-		orderPaymentView.render();
-		baseModalView.setContent(orderPaymentView.getContent());
-		baseModalView.open();
+    // Записываем в OrderModel данные корзины: список товаров и общую сумму
+    const itemIds = Array.from(basketModel.items.keys());
+    orderModel.setItems(itemIds);
+    orderModel.setTotal(basketModel.getTotal());
 
-		// После нажатия кнопки "Далее" переходим к шагу ввода контактов
-		const nextBtn = orderPaymentView
-			.getContent()
-			.querySelector('button.order__button') as HTMLButtonElement;
-		if (nextBtn) {
-			nextBtn.addEventListener('click', () => {
-				if (orderPaymentView.getData()) {
-					baseModalView.close();
-					const contactInfoView = new ContactInfoContentView(
-						'#modal-container',
-						(email: string, phone: string) => {
-							console.log('Получено:', email, phone);
-							onOrderSuccess(basketModel.getTotal());
-						}
-					);
-					contactInfoView.render();
-					baseModalView.setContent(contactInfoView.getContent());
-					baseModalView.open();
-				}
-			});
-		}
-	}
+    // Открываем окно выбора способа оплаты и ввода адреса (OrderPaymentContentView)
+    const orderPaymentView = new OrderPaymentContentView(
+      'order', // id шаблона для шага оплаты
+      () => {
+        // Если данные шага оплаты валидны (валидация в OrderModel)
+        baseModalView.close();
+        openContactInfoStep();
+      },
+      orderModel
+    );
+    orderPaymentView.render();
+    baseModalView.setContent(orderPaymentView.getContent());
+    baseModalView.open();
+  }
 );
 
 // Инициализируем BasketPresenter и связываем его с HeaderView
-basketPresenter = new BasketPresenter(basketModel, basketView, eventEmitter);
+basketPresenter = new BasketPresenter(basketModel, basketView);
 basketPresenter.setHeaderView(headerView);
 
-// Назначаем обработчик для кнопки корзины в хедере
+// Обработчик для кнопки корзины в хедере
 const headerBasketButton = document.querySelector('.header__basket');
 if (headerBasketButton) {
-	headerBasketButton.addEventListener('click', () => {
-		baseModalView.setContent(basketView.getContent());
-		baseModalView.open();
-	});
+  headerBasketButton.addEventListener('click', () => {
+    baseModalView.setContent(basketView.getContent());
+    baseModalView.open();
+  });
 } else {
-	console.error('ошибка');
+  console.error('ошибка');
 }
 
-// Функция для обработки успешного оформления заказа
-function onOrderSuccess(finalTotal: number) {
-	basketPresenter.clearBasket();
-	headerView.renderCartCount(0);
+// Функция, открывающая шаг ввода контактных данных
+function openContactInfoStep(): void {
+  const contactInfoView = new ContactInfoContentView(
+    'contacts', // id шаблона для контактов
+    async (email: string, phone: string) => {
+      console.log("Информация пользователя:", email, phone);
+      // Если OrderModel валидирует контакты успешно, закрываем окно контактов
+      if (orderModel.validateStep2()) {
+        baseModalView.close();
+        try {
+          // Отправляем заказ на сервер
+          const response = await orderModel.submitOrder();
+          console.log('Заказ:', response);
+          onOrderSuccess(orderModel.getOrderData()?.total ?? 0);
+        } catch (error) {
+          console.error('Ошибка:', error);
+        }
+      }
+    },
+    orderModel
+  );
+  contactInfoView.render();
+  baseModalView.setContent(contactInfoView.getContent());
+  baseModalView.open();
+}
 
-	const orderSuccessView = new OrderSuccessContentView(
-		'#modal-container',
-		() => {
-			baseModalView.close();
-		}
-	);
-	orderSuccessView.render(finalTotal);
-	baseModalView.setContent(orderSuccessView.getContent());
-	baseModalView.open();
+// Функция для обработки успешного оформления заказа (OrderSuccessContentView)
+function onOrderSuccess(finalTotal: number) {
+  basketPresenter.clearBasket();
+  headerView.renderCartCount(0);
+
+  const orderSuccessView = new OrderSuccessContentView(
+    'success', // id шаблона для финального экрана
+    () => {
+      baseModalView.close();
+    }
+  );
+  orderSuccessView.render(finalTotal);
+  baseModalView.setContent(orderSuccessView.getContent());
+  baseModalView.open();
 }
 
 // Загружаем товары и отображаем их в каталоге
-productModel
-	.fetchProducts()
-	.then(() => {
-		storePageView.render(productModel.products);
-	})
-	.catch((error) => {
-		console.error('ошибка', error);
-	});
+productModel.fetchProducts()
+  .then(() => {
+    storePageView.render(productModel.products);
+  })
+  .catch(error => {
+    console.error('Ошибка:', error);
+  });
