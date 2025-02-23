@@ -1,74 +1,114 @@
-import { OrderModel } from '../../models/OrderModel';
-
 export class OrderPaymentContentView {
-  private contentElement: HTMLElement;
-  private orderModel: OrderModel;
-  private onNext: () => void;
-  private nextButton: HTMLButtonElement | null = null;
+	private contentElement: HTMLElement;
+	private onNext: () => void;
+	private onInputChanged: (field: string, value: string) => void;
+	private nextButton: HTMLButtonElement | null = null;
+	private errorElement: HTMLElement | null = null;
 
-  /**
-   * Конструктор принимает:
-   * @param templateId - id шаблона
-   * @param onNext - колбэк, вызываемый при успешном прохождении шага (когда данные валидны)
-   * @param orderModel - экземпляр OrderModel для установки данных и валидации
-   */
-  constructor(templateId: string, onNext: () => void, orderModel: OrderModel) {
-    this.onNext = onNext;
-    this.orderModel = orderModel;
-    const template = document.getElementById(templateId) as HTMLTemplateElement;
-    if (!template) {
-      throw new Error(`OrderPaymentContentView: не найден`);
-    }
-    const clone = template.content.cloneNode(true) as DocumentFragment;
-    const element = clone.firstElementChild as HTMLElement;
-    if (!element) {
-      throw new Error(`OrderPaymentContentView: не найден`);
-    }
-    this.contentElement = element;
-  }
+	/**
+	 * @param templateId - id шаблона
+	 * @param onNext - колбэк, вызываемый при успешном прохождении шага (когда данные валидны)
+	 * @param onInputChanged - колбэк для передачи изменений в полях
+	 */
+	constructor(
+		templateId: string,
+		onNext: () => void,
+		onInputChanged: (field: string, value: string) => void
+	) {
+		this.onNext = onNext;
+		this.onInputChanged = onInputChanged;
+		const template = document.getElementById(templateId) as HTMLTemplateElement;
+		if (!template) {
+			throw new Error(`OrderPaymentContentView: не найден`);
+		}
+		const clone = template.content.cloneNode(true) as DocumentFragment;
+		const element = clone.firstElementChild as HTMLElement;
+		if (!element) {
+			throw new Error(`OrderPaymentContentView: не найден`);
+		}
+		this.contentElement = element;
+	}
 
-  render(): void {
-    const btnOnline = this.contentElement.querySelector('button[name="card"]') as HTMLButtonElement;
-    const btnCash = this.contentElement.querySelector('button[name="cash"]') as HTMLButtonElement;
-    const addressInput = this.contentElement.querySelector('input[name="address"]') as HTMLInputElement;
-    this.nextButton = this.contentElement.querySelector('button.order__button') as HTMLButtonElement;
+	render(): void {
+		const form = this.contentElement.querySelector('form') as HTMLFormElement;
+		if (form) {
+			form.addEventListener('submit', (e) => {
+				e.preventDefault();
+			});
+		}
 
-    if (this.nextButton) {
-      this.nextButton.disabled = true;
-      this.nextButton.addEventListener('click', () => {
-        if (this.orderModel.validateStep1()) {
-          this.onNext();
-        }
-      });
-    }
+		const btnOnline = this.contentElement.querySelector(
+			'button[name="card"]'
+		) as HTMLButtonElement;
+		const btnCash = this.contentElement.querySelector(
+			'button[name="cash"]'
+		) as HTMLButtonElement;
+		const addressInput = this.contentElement.querySelector(
+			'input[name="address"]'
+		) as HTMLInputElement;
+		this.nextButton = this.contentElement.querySelector(
+			'button.order__button'
+		) as HTMLButtonElement;
+		this.errorElement = this.contentElement.querySelector(
+			'.form__errors'
+		) as HTMLElement;
 
-    btnOnline.addEventListener('click', () => {
-      this.orderModel.setPayment('online');
-      btnOnline.classList.add('button_alt-active');
-      btnCash.classList.remove('button_alt-active');
-      this.validate();
-    });
+		if (this.nextButton) {
+			this.nextButton.disabled = true;
+		}
 
-    btnCash.addEventListener('click', () => {
-      this.orderModel.setPayment('cash');
-      btnCash.classList.add('button_alt-active');
-      btnOnline.classList.remove('button_alt-active');
-      this.validate();
-    });
+		btnOnline.addEventListener('click', () => {
+			btnOnline.classList.add('button_alt-active');
+			btnCash.classList.remove('button_alt-active');
+			this.onInputChanged('payment', 'online');
+		});
 
-    addressInput.addEventListener('input', () => {
-      this.orderModel.setAddress(addressInput.value);
-      this.validate();
-    });
-  }
+		btnCash.addEventListener('click', () => {
+			btnCash.classList.add('button_alt-active');
+			btnOnline.classList.remove('button_alt-active');
+			this.onInputChanged('payment', 'cash');
+		});
 
-  private validate(): void {
-    if (this.nextButton) {
-      this.nextButton.disabled = !this.orderModel.validateStep1();
-    }
-  }
+		addressInput.addEventListener('input', () => {
+			this.onInputChanged('address', addressInput.value);
+		});
+	}
 
-  getContent(): HTMLElement {
-    return this.contentElement;
-  }
+	/**
+	 * Привязывает обработчик на кнопку "Далее".
+	 * @param callback - функция, вызываемая при клике на кнопку "Далее".
+	 */
+
+	bindNextButton(callback: () => void): void {
+		if (this.nextButton) {
+			this.nextButton.addEventListener('click', callback);
+		}
+	}
+
+	/**
+	 * Устанавливает сообщение об ошибке для шага оплаты.
+	 * @param errorMessage - текст ошибки.
+	 */
+	setError(errorMessage: string): void {
+		if (this.errorElement) {
+			this.errorElement.textContent = errorMessage;
+		}
+	}
+
+	/**
+	 * Устанавливает состояние кнопки "Далее".
+	 * @param enabled - true, если кнопка должна быть активной.
+	 */
+	setButtonState(enabled: boolean): void {
+		if (this.nextButton) {
+			this.nextButton.disabled = !enabled;
+		}
+	}
+
+	/**
+	 * Возвращает корневой DOM-элемент представления.
+	 */
+	getContent(): HTMLElement {
+		return this.contentElement;
+	}
 }

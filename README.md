@@ -154,7 +154,7 @@ constructor(baseUrl: string, options: RequestInit = {})
   - **Назначение:** 
   Собирает, валидирует и трансформирует данные заказа для отправки на сервер.
   - **Поля:** 
-  payment: "online" | "cash"
+  payment: 'online' | 'cash' | null
   email: string
   phone: string
   address: string
@@ -169,10 +169,11 @@ constructor(baseUrl: string, options: RequestInit = {})
   setContacts(email: string, phone: string): void
   setItems(items: string[]): void
   setTotal(total: number): void
-  validateStep1(): boolean – проверяет платеж и адрес.
-  validateStep2(): boolean – проверяет контакты.
+  validateStep1(): boolean – проверяет, что установлен способ оплаты и адрес.
+  validateStep2(): boolean – проверяет, что введены email и телефон.
   getOrderData(): IOrderRequest | null
   submitOrder(): Promise<any>
+  reset(): void – сбрасывает все поля заказа.
 
   #### 5. **Представления** (src/сomponents/views)
   Каждый класс представления отвечает за рендеринг соответствующей части интерфейса и работу с DOM.
@@ -206,6 +207,7 @@ constructor(baseUrl: string, options: RequestInit = {})
   - **Поля:** 
   detailElement: HTMLElement
   buyHandler: () => void
+  buyButton: HTMLButtonElement | null
   - **Конструктор:** 
   constructor(templateSelector: string, buyHandler: () => void)
   Принимает селектор контейнера для контента модального окна и обработчик клика по кнопке
@@ -218,29 +220,37 @@ constructor(baseUrl: string, options: RequestInit = {})
   Отображает контент шага оформления заказа – выбор способа оплаты и ввод адреса доставки.
   - **Поля:** 
   contentElement: HTMLElement
-  orderModel: OrderModel
   onNext: () => void
+  onInputChanged: (field: string, value: string) => void
   nextButton: HTMLButtonElement | null
+  errorElement: HTMLElement | null
   - **Конструктор:** 
-  constructor(templateId: string, onNext: () => void, orderModel: OrderModel)
+  constructor(templateId: string, onNext: () => void, onInputChanged: (field: string, value: string) => void)
   - **Методы:** 
   render(): void
-  getContent(): HTMLElement   
-  validate(): void 
+  bindNextButton(callback: () => void): void
+  setOnInputChanged(callback: (field: string, value: string) => void): void
+  setError(errorMessage: string): void
+  setButtonState(enabled: boolean): void
+  getContent(): HTMLElement
   - **ContactInfoContentView:** 
   - **Назначение:** 
   Отображает контент шага ввода контактных данных
   - **Поля:** 
   contentElement: HTMLElement
-  submitHandler: (email: string, phone: string) => void
-  orderModel: OrderModel
+  onInputChanged: (field: string, value: string) => void
   submitButton: HTMLButtonElement | null
+  errorElement: HTMLElement | null
   - **Конструктор:** 
-  constructor(templateId: string, submitHandler: (email: string, phone: string) => void, orderModel: OrderModel)
+  constructor(templateId: string, onInputChanged: (field: string, value: string) => void)
   - **Методы:** 
   render(): void
+  bindSubmitButton(callback: () => void): void
+  setOnInputChanged(callback: (field: string, value: string) => void): void
+  setError(errorMessage: string): void
+  setButtonState(enabled: boolean): void
+  reset(): void – сбрасывает поля формы и ошибки
   getContent(): HTMLElement
-  validate(): void
   - **OrderSuccessContentView:** 
   - **Назначение:** 
   Отображает контент финального шага – подтверждение заказа с итоговой суммой и кнопкой закрытия.
@@ -304,6 +314,20 @@ constructor(baseUrl: string, options: RequestInit = {})
   clearBasket(): void
   updateCartDisplay(): void – для каждого товара создается экземпляр BasketItemView, обновляется список и счетчик в хедере.
   setHeaderView(headerView: HeaderView): void
+
+  - **OrderPresenter:**
+  - **Назначение:** 
+  Координирует оформление заказа: обрабатывает изменения ввода, выполняет валидацию и отправляет заказ.
+  - **Поля:** 
+  orderModel: OrderModel
+  - **Конструктор:** 
+  constructor(orderModel: OrderModel)
+  - **Методы:** 
+  onPaymentInputChanged(field: string, value: string): void 
+  getPaymentError(): string 
+  onContactInputChanged(field: string, value: string): void 
+  getContactError(): string 
+  submitOrder(): Promise<IOrderRequest> 
 
   #### 7. **События** (src/types/index.ts)
   AppEvents.PRODUCT_SELECTED
