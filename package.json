@@ -1,7 +1,8 @@
 {
-  "name": "my-webpack-project",
+  "name": "web-larek-frontend",
   "version": "1.0.0",
-  "main": "index.js",
+  "homepage": "https://mestr3z.github.io/web-larek-frontend/",
+  "main": "index.ts",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.21.5",
@@ -32,7 +33,7 @@
     "webpack-cli": "^5.0.2",
     "webpack-dev-server": "^4.13.3"
   },
-  "description": "My webpack project",
+  "description": "typescript project",
   "scripts": {
     "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development",
@@ -42,6 +43,7 @@
     "lint": "eslint --ext .js,.ts ./src",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier ./src --write",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   }
 }
