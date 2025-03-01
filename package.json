@@ -2,7 +2,7 @@
   "name": "web-larek-frontend",
   "version": "1.0.0",
   "homepage": "https://mestr3z.github.io/web-larek-frontend/",
-  "main": "index.html",
+  "main": "index.ts",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.21.5",
